@@ -152,3 +152,150 @@ variable "project_environment" {
     environment = "dev"
   }
 }
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++
+Output,Loop,Provisioner,modules,remote backened
+++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Output Variable
+
+----------------------------------------------------
+
+# main.tf
+
+# Provider Configuration
+provider "aws" {
+  region = "us-east-1"  # Update with your desired AWS region
+}
+
+# Resource Configuration
+resource "aws_instance" "example_instance" {
+  ami           = "ami-0195204d5dce06d99"  # Update with your desired AMI ID
+  instance_type = "t2.micro"  # Update with your desired instance type
+
+  tags = {
+    Name = "ExampleInstance"
+  }
+}
+
+# Output Variables
+output "instance_id" {
+  value       = aws_instance.example_instance.id
+  description = "The ID of the created EC2 instance"
+  sensitive   = true
+}
+
+output "public_ip" {
+  value       = aws_instance.example_instance.public_ip
+  description = "The public IP address of the created EC2 instance"
+}
+
+
+-------------------------------------------------------------------
+Provisioner remote-exec
+-------------------------------------------------------------------
+
+# main.tf
+
+# Provider Configuration
+provider "aws" {
+  region = "eu-north-1"  # Update with your desired AWS region
+}
+
+# Resource Configuration
+resource "aws_instance" "example_instance" {
+  ami           = "ami-0437df53acb2bbbfd"  # Update with your desired AMI ID
+  instance_type = "t3.micro"  # Update with your desired instance type
+
+  key_name      = "Project"  # Update with the name of your key pair
+
+  tags = {
+    Name = "ExampleInstance"
+  }
+
+  # Connection Configuration
+  connection {
+    type        = "ssh"
+    user        = "Project"  # Update with the appropriate username for your AMI
+    private_key = file("C:/Users/ayush/Downloads/Project.pem")  # Update with the path to your private key file
+    timeout     = "2m"
+    host        = self.public_ip
+  }
+
+  # Provisioners
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Public IP: ${self.public_ip}' > /home/ec2-user/server_info.txt",
+      "echo 'Instance ID: ${self.id}' >> /home/ec2-user/server_info.txt"
+    ]
+  }
+}
+
+
+-------------------------------------------------------------------
+Loop
+-------------------------------------------------------------------
+
+# main.tf
+
+# Provider Configuration
+provider "aws" {
+  region = "eu-north-1"  # Update with your desired AWS region
+}
+
+# Variable Definition
+variable "instance_names" {
+  description = "List of instance names"
+  type        = list(string)
+  default     = ["Instance-1", "Instance-2", "Instance-3"]  # Update with your desired instance names
+}
+
+# Resource Configuration
+resource "aws_instance" "example_instance" {
+  for_each      = toset(var.instance_names)
+  ami           = "ami-0437df53acb2bbbfd"  # Update with your desired AMI ID
+  instance_type = "t3.micro"  # Update with your desired instance type
+
+  key_name      = "Project"  # Update with the name of your key pair
+
+  tags = {
+    Name = each.value
+  }
+}
+
+
+
+By using for_each = toset(var.instance_names), Terraform knows to create a separate instance for each element in the list. In this example, 
+Terraform will create three instances because the instance_names list has three elements.
+
+If you update the instance_names list with more or fewer elements, Terraform will adjust the number of instances it creates accordingly. 
+This flexibility allows you to dynamically scale the number of instances based on the length of the list.
+
+
+----------------------------------------------------------------------
+Modules
+----------------------------------------------------------------------
+
+modules created
+
+--------------------------------------
+Remote backened
+--------------------------------------
+
+--------------------------------------------------------------------
+
+Terraform on windows
+
+--------------------------------------------------------------------
+
+- download windows file from official website
+- extract the zip file
+- copy the extracted files to c drive and set the environment variable
+- Search for "Environment Variables": Type "Environment Variables" in the search bar and select the "Edit the system environment variables" option that appears.
+- Edit the "Path" variable: In the Environment Variables window, locate the "Path" variable under the "System variables" section and click on the "Edit" button
+-Add Terraform to the Path: In the Edit Environment Variable window, click on the "New" button and enter the path to the Terraform executable directory (the location where you found the terraform.exe file). For example, if Terraform is installed in C:\Program Files\Terraform, you would add C:\Program Files\Terraform to the Path.
+- change the directory in the terminal
+Set-Location -LiteralPath 'F:\FBS and Silicon\Silicon\DevOps[31-05-2023]\Terraform-script'
